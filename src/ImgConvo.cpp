@@ -15,6 +15,19 @@ Vector3 ImgConvolver::c2(Image &img, const int idx) const
     }
 }
 
+Vector3 ImgConvolver::c3(Image &img, const int i, const int j) const
+{
+    if (i < 0 || i >= h || j < 0 || j >= w)
+    {
+        return {128, 128, 128};
+    }
+    else
+    {
+        UChar3 uchar = static_cast<UChar3 *>(img.data)[i * w + j];
+        return {(uchar.x / 255.f) - 0.5f, (uchar.y / 255.f) - 0.5f, (uchar.z / 255.f) - 0.5f};
+    }
+}
+
 void ImgConvolver::convolve(Image &u0, Image &u1, Image &u2, float newAlpha, bool firstRun,
                             bool reflect)
 {
@@ -94,17 +107,17 @@ void ImgConvolver::convolve(Image &u0, Image &u1, Image &u2, float newAlpha, boo
 
             // clang-format off
             float x = 
-                ((alphaSq * (-c2(u1, ijm2).x + 16 * c2(u1, ijm1).x - c2(u1, im2j).x +
-                    16 * c2(u1, im1j).x - 60 * c2(u1, ij).x + 16 * c2(u1, ip1j).x - c2(u1, ip2j).x +
-                    16 * c2(u1, ijp1).x - c2(u1, ijp2).x) + 2 * c2(u1, ij).x - c2(u2, ij).x) * 255.f + 128);
+                ((alphaSq * (-c3(u1, i, j-2).x + 16 * c3(u1, i, j-1).x - c3(u1, i-2, j).x +
+                    16 * c3(u1, i-1, j).x - 60 * c3(u1, i, j).x + 16 * c3(u1, i+1, j).x - c3(u1, i+2, j).x +
+                    16 * c3(u1, i, j+1).x - c3(u1, i, j+2).x) + 2 * c3(u1, i, j).x - c3(u2, i, j).x) * 255.f + 128);
             float y = 
-                ((alphaSq * (-c2(u1, ijm2).y + 16 * c2(u1, ijm1).y - c2(u1, im2j).y +
-                    16 * c2(u1, im1j).y - 60 * c2(u1, ij).y + 16 * c2(u1, ip1j).y - c2(u1, ip2j).y +
-                    16 * c2(u1, ijp1).y - c2(u1, ijp2).y) + 2 * c2(u1, ij).y - c2(u2, ij).y) * 255.f + 128);
+                ((alphaSq * (-c3(u1, i, j-2).y + 16 * c3(u1, i, j-1).y - c3(u1, i-2, j).y +
+                    16 * c3(u1, i-1, j).y - 60 * c3(u1, i, j).y + 16 * c3(u1, i+1, j).y - c3(u1, i+2, j).y +
+                    16 * c3(u1, i, j+1).y - c3(u1, i, j+2).y) + 2 * c3(u1, i, j).y - c3(u2, i, j).y) * 255.f + 128);
             float z = 
-                ((alphaSq * (-c2(u1, ijm2).z + 16 * c2(u1, ijm1).z - c2(u1, im2j).z +
-                    16 * c2(u1, im1j).z - 60 * c2(u1, ij).z + 16 * c2(u1, ip1j).z - c2(u1, ip2j).z +
-                    16 * c2(u1, ijp1).z - c2(u1, ijp2).z) + 2 * c2(u1, ij).z - c2(u2, ij).z) * 255.f + 128);
+                ((alphaSq * (-c3(u1, i, j-2).z + 16 * c3(u1, i, j-1).z - c3(u1, i-2, j).z +
+                    16 * c3(u1, i-1, j).z - 60 * c3(u1, i, j).z + 16 * c3(u1, i+1, j).z - c3(u1, i+2, j).z +
+                    16 * c3(u1, i, j+1).z - c3(u1, i, j+2).z) + 2 * c3(u1, i, j).z - c3(u2, i, j).z) * 255.f + 128);
             x = (x <= 0) ? 0.f : (x >= 255) ? 255 : x;
             y = (y <= 0) ? 0.f : (y >= 255) ? 255 : y;
             z = (z <= 0) ? 0.f : (z >= 255) ? 255 : z;

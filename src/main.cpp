@@ -12,8 +12,10 @@
 //
 // -- compile for WebAssembly
 // -- implement file save (and load, for that matter)
+// -- video save? ffmpeg available on wasm?
 // -- paintable canvas? or pingable? pluckable?
-// -- space bar also starts/stops
+// -- go 16-bit or higher for each color channel
+// -- reverse mode?
 
 int main()
 {
@@ -38,14 +40,17 @@ int main()
     Texture displayTexture = LoadTextureFromImage(images[0]);
     size_t curImage{0};
 
-    float alphaSq{.12f}; // input values tied to GUI controls
+    float alpha{.1f}; // input values tied to GUI controls
 
     // SetTraceLogLevel(LOG_ALL);
     bool running = false;
     char *lo = "";
     char *hi = "";
     int s1v{-2}, s2v{8}, s3v{7}, s4v{1}; // tuned to -O3
-    bool s1e{false}, s2e{false}, s3e{false}, s4e{false}, reflect{true}, firstRun{true};
+    bool s1e{false}, s2e{false}, s3e{false}, s4e{false};
+    bool reflect{true}, firstRun{true};
+    bool saving{false}, loading{false};
+    char filename[256]{0};
 
     // set FTZ flag
     intptr_t mask = (1 << 24 /* FZ */);
@@ -107,16 +112,34 @@ int main()
             UnloadDroppedFiles(droppedFiles);
         }
 
-        if (GuiButton((Rectangle){25, 25, 100, 25}, "Apply") || IsKeyReleased(KEY_A))
+        if (IsKeyReleased(KEY_S))
+        {
+            saving = true;
+            running = false;
+        }
+
+        if (IsKeyReleased(KEY_F)) // advance by one frame
+        {
+            running = false;
+            curImage = (curImage + 1) % 3;
+            int last = (curImage == 0) ? 2 : curImage - 1;
+            int penult = (curImage == 2) ? 0 : (curImage == 1) ? 2 : 1;
+            convolver.convolve(images[curImage], images[last], images[penult], alpha, firstRun,
+                               reflect);
+            UpdateTexture(displayTexture, images[curImage].data);
+        }
+
+        if (GuiButton((Rectangle){25, 25, 100, 25}, "Apply") || IsKeyReleased(KEY_A) ||
+            IsKeyReleased(KEY_SPACE))
         {
             running = !running;
         }
         if (running)
         {
-            curImage = (curImage + 1) % 3;
-            int last = (curImage == 0) ? 2 : curImage - 1;
+            curImage = (curImage + 1) % 3;                 // 0->1, 1->2, 2->0
+            int last = (curImage == 0) ? 2 : curImage - 1; //
             int penult = (curImage == 2) ? 0 : (curImage == 1) ? 2 : 1;
-            convolver.convolve(images[curImage], images[last], images[penult], alphaSq, firstRun,
+            convolver.convolve(images[curImage], images[last], images[penult], alpha, firstRun,
                                reflect);
             if (firstRun)
             {
@@ -125,27 +148,11 @@ int main()
             UpdateTexture(displayTexture, images[curImage].data);
         }
 
-        float low{0.01f}, high{0.175f};
-        GuiSlider((Rectangle){25, 125, 100, 25}, lo, hi, &alphaSq, low, high);
-        DrawText(TextFormat("%1.4f", alphaSq), 25, 155, 25, RAYWHITE);
+        float low{0.015f}, high{0.175f};
+        GuiSlider((Rectangle){25, 125, 100, 25}, lo, hi, &alpha, low, high);
+        DrawText(TextFormat("%1.4f", alpha), 25, 155, 25, RAYWHITE);
 
         GuiToggle((Rectangle){25, 190, 100, 25}, "Reflections", &reflect);
-        // if (GuiSpinner((Rectangle){25, 245, 75, 25}, nullptr, &s1v, -35, -1, s1e))
-        // {
-        //     s1e = !s1e; // negative exponent
-        // }
-        // if (GuiSpinner((Rectangle){25, 285, 75, 25}, nullptr, &s2v, 0, 99, s2e))
-        // {
-        //     s2e = !s2e; // 1st significant digit (or 1st and second...)
-        // }
-        // if (GuiSpinner((Rectangle){25, 325, 75, 25}, nullptr, &s3v, 0, 99, s3e))
-        // {
-        //     s3e = !s3e; // 2nd significant digit
-        // }
-        // if (GuiSpinner((Rectangle){25, 365, 75, 25}, nullptr, &s4v, 0, 99, s4e))
-        // {
-        //     s4e = !s4e; // 3rd significant digit
-        // }
 
         if (GuiButton((Rectangle){25, 75, 100, 25}, "Original") || IsKeyReleased(KEY_O))
         {
@@ -164,8 +171,30 @@ int main()
         }
 
         DrawFPS(25, 400);
-
         DrawTexture(displayTexture, picStart.x, picStart.y, WHITE);
+
+        if (saving)
+        {
+            int clk = GuiTextInputBox(Rectangle{200, 0, 500, 300}, "Save", "Save File", "OK;Cancel",
+                                      filename, 255, NULL);
+            if (clk == 1)
+            {
+                Image image = LoadImageFromTexture(displayTexture);
+                ExportImage(image, filename);
+                UnloadImage(image);
+                saving = false;
+            }
+            if (clk == 2)
+            {
+                saving = false;
+            }
+            if (clk == 0)
+            {
+                saving = false;
+            }
+            // set
+        }
+
         EndDrawing();
     }
 
