@@ -39,7 +39,7 @@ class ImgConvolver
     // load starting image, copy into 3 w/upsampled color
     void loadImage(Image &u1);
     // convolve, rotating
-    void convolve(float newAlpha, bool reflect, bool firstRun);
+    void convolve(float newAlpha, float fudgeFactor);
 
     float alpha{0}, alphaSq{0};
     int w{0}, h{0}, s{0};

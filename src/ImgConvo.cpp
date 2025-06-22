@@ -90,12 +90,12 @@ void ImgConvolver::loadImage(Image &img)
     curImage = 0;
 }
 
-void ImgConvolver::convolve(float newAlpha, bool reflect, bool firstRun)
+void ImgConvolver::convolve(float newAlpha, float fudge)
 {
     alpha = newAlpha;
     alphaSq = alpha * alpha;
     kQuot = (alpha - 1) / (alpha + 1);
-    float fudge = 0.25f;
+    // float fudge = .30f;
     UChar3 *u0d = static_cast<UChar3 *>(u0out.data);
     // indices for the current, last, and penultimate images
     curImage = (curImage + 1) % 3;
@@ -103,61 +103,6 @@ void ImgConvolver::convolve(float newAlpha, bool reflect, bool firstRun)
     int l = (curImage == 0) ? 2 : curImage - 1;
     int p = (curImage == 2) ? 0 : (curImage == 1) ? 2 : 1;
 
-    if (reflect || firstRun)
-    {
-        for (int col = 0; col < w; ++col)
-        {
-            const int zj = col;
-            const int Nj = (h - 1) * w + col;
-            img0R[zj] = 0;
-            img0R[Nj] = 0;
-            img0G[zj] = 0;
-            img0G[Nj] = 0;
-            img0B[zj] = 0;
-            img0B[Nj] = 0;
-            img1R[zj] = 0;
-            img1R[Nj] = 0;
-            img1G[zj] = 0;
-            img1G[Nj] = 0;
-            img1B[zj] = 0;
-            img1B[Nj] = 0;
-            img2R[zj] = 0;
-            img2R[Nj] = 0;
-            img2G[zj] = 0;
-            img2G[Nj] = 0;
-            img2B[zj] = 0;
-            img2B[Nj] = 0;
-        }
-
-        // left and right
-        for (int row = 0; row < h; ++row)
-        {
-            const int i0 = row * w;
-            const int iN = row * w + (w - 1);
-            img0R[i0] = 0;
-            img0R[iN] = 0;
-            img0G[i0] = 0;
-            img0G[iN] = 0;
-            img0B[i0] = 0;
-            img0B[iN] = 0;
-            img1R[i0] = 0;
-            img1R[iN] = 0;
-            img1G[i0] = 0;
-            img1G[iN] = 0;
-            img1B[i0] = 0;
-            img1B[iN] = 0;
-            img2R[i0] = 0;
-            img2R[iN] = 0;
-            img2G[i0] = 0;
-            img2G[iN] = 0;
-            img2B[i0] = 0;
-            img2B[iN] = 0;
-        }
-        if (firstRun)
-        {
-            firstRun = false;
-        }
-    } // handle reflections and first run boundaries (gray)
     for (int i = 1; i < h - 1; ++i)
     {
         for (int j = 1; j < w - 1; ++j)
@@ -175,39 +120,23 @@ void ImgConvolver::convolve(float newAlpha, bool reflect, bool firstRun)
                 (alphaSq * (-c4(blus[l].get(), i, j-2) + 16 * c4(blus[l].get(), i, j-1) - c4(blus[l].get(), i-2, j) +
                     16 * c4(blus[l].get(), i-1, j) - 60 * c4(blus[l].get(), i, j) + 16 * c4(blus[l].get(), i+1, j) - c4(blus[l].get(), i+2, j) +
                     16 * c4(blus[l].get(), i, j+1) - c4(blus[l].get(), i, j+2)) + 2 * c4(blus[l].get(), i, j) - c4(blus[p].get(), i, j));
+            // clang-format on
             int ij = i * w + j;
             reds[c].get()[ij] = x;
             grns[c].get()[ij] = y;
             blus[c].get()[ij] = z;
-            // x = (x + 0.5f) * 255;
-            // y = (y + 0.5f) * 255;
-            // z = (z + 0.5f) * 255;
-            // x = (x <= 0) ? 0.f : (x >= 255) ? 255 : x;
-            // y = (y <= 0) ? 0.f : (y >= 255) ? 255 : y;
-            // z = (z <= 0) ? 0.f : (z >= 255) ? 255 : z;
-            // clang-format on
             u0d[ij].x = static_cast<unsigned char>(Clamp((x + 0.5f) * 255, 0, 255));
             u0d[ij].y = static_cast<unsigned char>(Clamp((y + 0.5f) * 255, 0, 255));
             u0d[ij].z = static_cast<unsigned char>(Clamp((z + 0.5f) * 255, 0, 255));
             // TraceLog(LOG_WARNING, "x = %f \t y = %f", x, y);
         }
     }
-    // TraceLog(LOG_WARNING, "Convolver traced image.");
 
     // absorbing boundary
-    if (!reflect)
     {
         float twoKp1 = 2 / (alpha + 1);
         for (int col = 0; col < w; ++col)
         {
-
-            // const int zj = col;
-            // const int Nj = (h - 1) * w + col;
-            // float u0zjx = -c2(u2, zj + w).x + kQuot * (c2(u0, zj + w).x - c2(u2, zj).x) +
-            //               twoKp1 * (c2(u1, zj).x - c2(u1, zj + w).x);
-            // float u0Njx = -c2(u2, Nj - w).x + kQuot * (c2(u0, Nj - w).x - c2(u2, Nj).x) +
-            //               twoKp1 * (c2(u1, Nj).x - c2(u1, Nj - w).x);
-
             // clang-format off
             const int zj = col;
             const int Nj = (h - 1) * w + col;

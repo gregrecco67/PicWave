@@ -20,6 +20,12 @@
 // -- next order kernel
 // -- SIMD
 // -- give up on "radiating boundary"?
+// - fix file loading/unloading! [dropped image works, but nothing else]
+// -- make fudge factor a slider
+// -- give sliders names
+
+// -- reflect is just absorb at 0, get rid of button
+// -- new mode treating orig image colors as 0, allowing painting/plucking?
 
 int main()
 {
@@ -36,28 +42,27 @@ int main()
 
     Image originalImg;
     Image currentImg;
-    originalImg = LoadImage("resources/possums.png");
-    ImageFormat(&originalImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
+    size_t frame{0};
     currentImg = LoadImage("resources/possums.png");
     ImageFormat(&currentImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-    ImgConvolver convolver(originalImg);
-    convolver.loadImage(originalImg);
+    originalImg = ImageCopy(currentImg);
+    ImageFormat(&originalImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
+    ImgConvolver convolver(currentImg);
+    convolver.loadImage(currentImg);
     TraceLog(LOG_WARNING, "Convolver loaded image.");
     // -------------
 
     Texture displayTexture = LoadTextureFromImage(currentImg);
 
-    float alpha{.1f}; // input values tied to GUI controls
+    float alpha{0.1f}; // input values tied to GUI controls
+    float fudge{0.0f}; //
 
     // SetTraceLogLevel(LOG_ALL);
     bool running = false;
-    char *lo = "";
-    char *hi = "";
-    int s1v{-2}, s2v{8}, s3v{7}, s4v{1}; // tuned to -O3
-    bool s1e{false}, s2e{false}, s3e{false}, s4e{false};
-    bool reflect{true}, firstRun{true};
     bool saving{false}, loading{false};
     char filename[256]{0};
+    float speedLow{0.0015f}, speedHigh{0.175f};
+    float fudgeLow{0.0f}, fudgeHigh{1.0f};
 
     // set FTZ flag
     intptr_t mask = (1 << 24 /* FZ */);
@@ -88,7 +93,7 @@ int main()
                 IsFileExtension(droppedFiles.paths[0], ".jpg") ||
                 IsFileExtension(droppedFiles.paths[0], ".jpeg"))
             {
-                firstRun = true;
+                frame = 0;
                 currentImg = LoadImage(droppedFiles.paths[0]);
                 if (currentImg.width > width - picStart.x)
                 {
@@ -120,7 +125,8 @@ int main()
         if (IsKeyReleased(KEY_F)) // advance by one frame
         {
             running = false;
-            convolver.convolve(alpha, reflect, firstRun);
+            frame += 1;
+            convolver.convolve(alpha, fudge);
             UpdateTexture(displayTexture, currentImg.data);
         }
 
@@ -130,34 +136,39 @@ int main()
             running = !running;
         }
 
-        if (running)
-        {
-            convolver.convolve(alpha, reflect, firstRun);
-            if (firstRun)
-            {
-                firstRun = false;
-            }
-            UpdateTexture(displayTexture, currentImg.data);
-            DrawText("Running", 25, 355, 25, RAYWHITE);
-        }
-
-        float low{0.0015f}, high{0.175f};
-        GuiSlider((Rectangle){25, 125, 100, 25}, lo, hi, &alpha, low, high);
-        DrawText(TextFormat("%1.4f", alpha), 25, 155, 25, RAYWHITE);
-
-        GuiToggle((Rectangle){25, 190, 100, 25}, "Reflections", &reflect);
-
         if (GuiButton((Rectangle){25, 75, 100, 25}, "Original") || IsKeyReleased(KEY_O))
         {
+            frame = 0;
             currentImg = ImageCopy(originalImg);
+            convolver.loadImage(currentImg);
             UnloadTexture(displayTexture);
             displayTexture = LoadTextureFromImage(originalImg);
             UpdateTexture(displayTexture, originalImg.data);
             running = false;
-            firstRun = true;
         }
 
+        DrawText("Speed", 25, 125, 18, RAYWHITE);
+        GuiSlider((Rectangle){25, 150, 100, 25}, NULL, NULL, &alpha, speedLow, speedHigh);
+        DrawText(TextFormat("%1.4f", alpha), 25, 180, 25, RAYWHITE);
+
+        // GuiToggle((Rectangle){25, 215, 100, 25}, "Reflections", &reflect);
+
+        // auto textCol = (reflect) ? DARKGRAY : RAYWHITE;
+        DrawText("Absorb", 25, 265, 18, RAYWHITE);
+        GuiSlider((Rectangle){25, 295, 100, 25}, NULL, NULL, &fudge, fudgeLow, fudgeHigh);
+        DrawText(TextFormat("%1.4f", fudge), 25, 325, 25, RAYWHITE);
+
         DrawFPS(25, 400);
+        DrawText(TextFormat("%d", frame), 25, 450, 25, RAYWHITE);
+
+        if (running)
+        {
+            frame += 1;
+            convolver.convolve(alpha, fudge);
+            UpdateTexture(displayTexture, currentImg.data);
+            DrawText("Running", 25, 355, 25, RAYWHITE);
+        }
+
         DrawTexture(displayTexture, picStart.x, picStart.y, WHITE);
 
         if (saving)
