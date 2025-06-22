@@ -14,8 +14,12 @@
 // -- implement file save (and load, for that matter)
 // -- video save? ffmpeg available on wasm?
 // -- paintable canvas? or pingable? pluckable?
-// -- go 16-bit or higher for each color channel
-// -- reverse mode?
+
+// -- time since start
+// -- circular field?
+// -- next order kernel
+// -- SIMD
+// -- give up on "radiating boundary"?
 
 int main()
 {
@@ -23,22 +27,25 @@ int main()
     InitWindow(1400, 1000, "PicWave");
     SetTargetFPS(100);
 
-    ImgConvolver convolver;
     int height = GetScreenHeight();
     int width = GetScreenWidth();
     Vector2 picStart = {150.f, 15.f};
 
+    // HYPOTHESIS we can replaces all references to images with images[0]
+    // or we could just have originalImg and currentImg
+
     Image originalImg;
-    std::array<Image, 3> images;
-    for (auto &image : images)
-    {
-        image = LoadImage("resources/possums.png");
-        ImageFormat(&image, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-    }
+    Image currentImg;
     originalImg = LoadImage("resources/possums.png");
     ImageFormat(&originalImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-    Texture displayTexture = LoadTextureFromImage(images[0]);
-    size_t curImage{0};
+    currentImg = LoadImage("resources/possums.png");
+    ImageFormat(&currentImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
+    ImgConvolver convolver(originalImg);
+    convolver.loadImage(originalImg);
+    TraceLog(LOG_WARNING, "Convolver loaded image.");
+    // -------------
+
+    Texture displayTexture = LoadTextureFromImage(currentImg);
 
     float alpha{.1f}; // input values tied to GUI controls
 
@@ -81,33 +88,25 @@ int main()
                 IsFileExtension(droppedFiles.paths[0], ".jpg") ||
                 IsFileExtension(droppedFiles.paths[0], ".jpeg"))
             {
-                curImage = 0;
                 firstRun = true;
-                UnloadImage(images[0]);
-                UnloadImage(images[1]);
-                UnloadImage(images[2]);
-                UnloadImage(originalImg);
-                images[0] = LoadImage(droppedFiles.paths[0]);
-                if (images[curImage].width > width - picStart.x)
+                currentImg = LoadImage(droppedFiles.paths[0]);
+                if (currentImg.width > width - picStart.x)
                 {
-                    float aspectRatio =
-                        float(images[curImage].width) / float(images[curImage].height);
-                    ImageResize(&images[curImage], width - picStart.x - 5,
+                    float aspectRatio = float(currentImg.width) / float(currentImg.height);
+                    ImageResize(&currentImg, width - picStart.x - 5,
                                 (width - picStart.x - 5) / aspectRatio);
                 }
-                if (images[curImage].height > height - picStart.y)
+                if (currentImg.height > height - picStart.y)
                 {
-                    float aspectRatio =
-                        float(images[curImage].width) / float(images[curImage].height);
-                    ImageResize(&images[curImage], (height - picStart.y - 5) * aspectRatio,
+                    float aspectRatio = float(currentImg.width) / float(currentImg.height);
+                    ImageResize(&currentImg, (height - picStart.y - 5) * aspectRatio,
                                 height - picStart.y - 5);
                 }
-                ImageFormat(&images[curImage], PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-                originalImg = ImageCopy(images[0]);
-                images[1] = ImageCopy(images[0]); // set prev 2 to copy
-                images[2] = ImageCopy(images[0]);
-                displayTexture = LoadTextureFromImage(images[curImage]);
-                UpdateTexture(displayTexture, images[curImage].data);
+                ImageFormat(&currentImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
+                originalImg = ImageCopy(currentImg);
+                convolver.loadImage(currentImg);
+                displayTexture = LoadTextureFromImage(currentImg);
+                UpdateTexture(displayTexture, currentImg.data);
             }
             UnloadDroppedFiles(droppedFiles);
         }
@@ -121,12 +120,8 @@ int main()
         if (IsKeyReleased(KEY_F)) // advance by one frame
         {
             running = false;
-            curImage = (curImage + 1) % 3;
-            int last = (curImage == 0) ? 2 : curImage - 1;
-            int penult = (curImage == 2) ? 0 : (curImage == 1) ? 2 : 1;
-            convolver.convolve(images[curImage], images[last], images[penult], alpha, firstRun,
-                               reflect);
-            UpdateTexture(displayTexture, images[curImage].data);
+            convolver.convolve(alpha, reflect, firstRun);
+            UpdateTexture(displayTexture, currentImg.data);
         }
 
         if (GuiButton((Rectangle){25, 25, 100, 25}, "Apply") || IsKeyReleased(KEY_A) ||
@@ -134,21 +129,19 @@ int main()
         {
             running = !running;
         }
+
         if (running)
         {
-            curImage = (curImage + 1) % 3;                 // 0->1, 1->2, 2->0
-            int last = (curImage == 0) ? 2 : curImage - 1; //
-            int penult = (curImage == 2) ? 0 : (curImage == 1) ? 2 : 1;
-            convolver.convolve(images[curImage], images[last], images[penult], alpha, firstRun,
-                               reflect);
+            convolver.convolve(alpha, reflect, firstRun);
             if (firstRun)
             {
                 firstRun = false;
             }
-            UpdateTexture(displayTexture, images[curImage].data);
+            UpdateTexture(displayTexture, currentImg.data);
+            DrawText("Running", 25, 355, 25, RAYWHITE);
         }
 
-        float low{0.015f}, high{0.175f};
+        float low{0.0015f}, high{0.175f};
         GuiSlider((Rectangle){25, 125, 100, 25}, lo, hi, &alpha, low, high);
         DrawText(TextFormat("%1.4f", alpha), 25, 155, 25, RAYWHITE);
 
@@ -156,13 +149,7 @@ int main()
 
         if (GuiButton((Rectangle){25, 75, 100, 25}, "Original") || IsKeyReleased(KEY_O))
         {
-            curImage = 0;
-            UnloadImage(images[0]);
-            UnloadImage(images[1]);
-            UnloadImage(images[2]);
-            images[0] = ImageCopy(originalImg);
-            images[1] = ImageCopy(originalImg);
-            images[2] = ImageCopy(originalImg);
+            currentImg = ImageCopy(originalImg);
             UnloadTexture(displayTexture);
             displayTexture = LoadTextureFromImage(originalImg);
             UpdateTexture(displayTexture, originalImg.data);
@@ -200,10 +187,7 @@ int main()
 
     UnloadTexture(displayTexture); // Unload texture from VRAM
     UnloadImage(originalImg);      // Unload image-origin from RAM
-    for (auto &image : images)
-    {
-        UnloadImage(image); // Unload image-copy from RAM
-    }
+    UnloadImage(currentImg);       // Unload image-current from RAM
     CloseWindow();
     return 0;
 }
