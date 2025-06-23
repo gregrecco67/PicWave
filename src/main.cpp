@@ -8,23 +8,17 @@
 #include <algorithm>
 #include <arm_neon.h>
 
-// TODO: investigate reverse button
+// TODO:
 //
 // -- compile for WebAssembly
 // -- implement file save (and load, for that matter)
 // -- video save? ffmpeg available on wasm?
 // -- paintable canvas? or pingable? pluckable?
 
-// -- time since start
 // -- circular field?
 // -- next order kernel
 // -- SIMD
-// -- give up on "radiating boundary"?
-// - fix file loading/unloading! [dropped image works, but nothing else]
-// -- make fudge factor a slider
-// -- give sliders names
 
-// -- reflect is just absorb at 0, get rid of button
 // -- new mode treating orig image colors as 0, allowing painting/plucking?
 
 int main()
@@ -64,6 +58,7 @@ int main()
     float speedLow{0.0015f}, speedHigh{0.175f};
     float fudgeLow{0.0f}, fudgeHigh{1.0f};
 
+    // hide when not arm64-NEON
     // set FTZ flag
     intptr_t mask = (1 << 24 /* FZ */);
     intptr_t fpsr;
@@ -82,9 +77,6 @@ int main()
             height = newheight;
         }
 
-        BeginDrawing();
-        ClearBackground(BLACK);
-
         if (IsFileDropped())
         {
             FilePathList droppedFiles = LoadDroppedFiles();
@@ -94,6 +86,7 @@ int main()
                 IsFileExtension(droppedFiles.paths[0], ".jpeg"))
             {
                 frame = 0;
+                saving = false;
                 currentImg = LoadImage(droppedFiles.paths[0]);
                 if (currentImg.width > width - picStart.x)
                 {
@@ -116,13 +109,13 @@ int main()
             UnloadDroppedFiles(droppedFiles);
         }
 
-        if (IsKeyReleased(KEY_S))
+        if (IsKeyReleased(KEY_S) && !saving)
         {
             saving = true;
             running = false;
         }
 
-        if (IsKeyReleased(KEY_F)) // advance by one frame
+        if (IsKeyReleased(KEY_F) && !saving) // advance by one frame
         {
             running = false;
             frame += 1;
@@ -130,13 +123,18 @@ int main()
             UpdateTexture(displayTexture, currentImg.data);
         }
 
-        if (GuiButton((Rectangle){25, 25, 100, 25}, "Apply") || IsKeyReleased(KEY_A) ||
-            IsKeyReleased(KEY_SPACE))
+        BeginDrawing();
+        ClearBackground(BLACK);
+
+        if ((GuiButton((Rectangle){25, 25, 100, 25}, "Apply") || IsKeyReleased(KEY_A) ||
+             IsKeyReleased(KEY_SPACE)) &&
+            !saving)
         {
             running = !running;
         }
 
-        if (GuiButton((Rectangle){25, 75, 100, 25}, "Original") || IsKeyReleased(KEY_O))
+        if ((GuiButton((Rectangle){25, 75, 100, 25}, "Original") || IsKeyReleased(KEY_O)) &&
+            !saving)
         {
             frame = 0;
             currentImg = ImageCopy(originalImg);
@@ -154,9 +152,9 @@ int main()
         // GuiToggle((Rectangle){25, 215, 100, 25}, "Reflections", &reflect);
 
         // auto textCol = (reflect) ? DARKGRAY : RAYWHITE;
-        DrawText("Absorb", 25, 265, 18, RAYWHITE);
-        GuiSlider((Rectangle){25, 295, 100, 25}, NULL, NULL, &fudge, fudgeLow, fudgeHigh);
-        DrawText(TextFormat("%1.4f", fudge), 25, 325, 25, RAYWHITE);
+        DrawText("Absorb", 25, 215, 18, RAYWHITE);
+        GuiSlider((Rectangle){25, 245, 100, 25}, NULL, NULL, &fudge, fudgeLow, fudgeHigh);
+        DrawText(TextFormat("%1.4f", fudge), 25, 275, 25, RAYWHITE);
 
         DrawFPS(25, 400);
         DrawText(TextFormat("%d", frame), 25, 450, 25, RAYWHITE);
@@ -173,8 +171,8 @@ int main()
 
         if (saving)
         {
-            int clk = GuiTextInputBox(Rectangle{200, 0, 500, 300}, "Save", "Save File", "OK;Cancel",
-                                      filename, 255, NULL);
+            int clk = GuiTextInputBox(Rectangle{200, 0, 500, 300}, "Save", "Save Image",
+                                      "OK;Cancel", filename, 255, NULL);
             if (clk == 1)
             {
                 Image image = LoadImageFromTexture(displayTexture);
