@@ -60,11 +60,11 @@ int main()
 
     // hide when not arm64-NEON
     // set FTZ flag
-    intptr_t mask = (1 << 24 /* FZ */);
-    intptr_t fpsr;
-    asm volatile("mrs %0, fpcr" : "=r"(fpsr));
-    fpsr |= mask;
-    asm volatile("msr fpcr, %0" : : "ri"(fpsr));
+    // intptr_t mask = (1 << 24 /* FZ */);
+    // intptr_t fpsr;
+    // asm volatile("mrs %0, fpcr" : "=r"(fpsr));
+    // fpsr |= mask;
+    // asm volatile("msr fpcr, %0" : : "ri"(fpsr));
 
     while (!WindowShouldClose())
     {
@@ -203,11 +203,11 @@ int main()
 
 // wasm compilation:
 
-// em++ -std=c++20 -o game.html src/main.cpp -Os -Wall \
+// em++ -std=c++20 -o index.html src/main.cpp src/ImgConvo.cpp -O3 -Wall \
 // -I ~/dev/emsdk/upstream/emscripten/cache/sysroot/include -I./src  -I/usr/local/include \
 // -L ~/dev/emsdk/upstream/emscripten/cache/sysroot/lib/libraylib.a -s USE_GLFW=3 \
 // -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1 --preload-file resources \
-// --shell-file minshell.html -DPLATFORM_WEB ~/dev/emsdk/upstream/emscripten/cache/sysroot/lib/libraylib.a
+// --shell-file src/minshell.html -DPLATFORM_WEB ~/dev/emsdk/upstream/emscripten/cache/sysroot/lib/libraylib.a
 //
 
 // app compilation for local use:
