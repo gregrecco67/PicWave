@@ -44,6 +44,13 @@ int main()
     ImgConvolver convolver(currentImg);
     convolver.loadImage(currentImg);
     TraceLog(LOG_WARNING, "Convolver loaded image.");
+
+    Font font = LoadFontEx("resources/lato-regular.otf", 22, 0, 0);
+    float fontSize = (float)font.baseSize;
+    SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+    GuiSetFont(font);
+    GuiSetStyle(BUTTON, TEXT_COLOR_NORMAL, 0x000000ff);
+    GuiSetStyle(BUTTON, TEXT_SIZE, 18);
     // -------------
 
     Texture displayTexture = LoadTextureFromImage(currentImg);
@@ -149,26 +156,24 @@ int main()
             running = false;
         }
 
-        DrawText("Speed", 25, 125, 18, RAYWHITE);
+        DrawTextEx(font, "Speed", {25, 125}, fontSize, 0, RAYWHITE);
         GuiSlider((Rectangle){25, 150, 100, 25}, NULL, NULL, &alpha, speedLow, speedHigh);
-        DrawText(TextFormat("%1.4f", alpha), 25, 180, 25, RAYWHITE);
+        DrawTextEx(font, TextFormat("%1.4f", alpha), {25, 180}, fontSize, 0, RAYWHITE);
 
-        // GuiToggle((Rectangle){25, 215, 100, 25}, "Reflections", &reflect);
-
-        // auto textCol = (reflect) ? DARKGRAY : RAYWHITE;
-        DrawText("Absorb", 25, 215, 18, RAYWHITE);
+        DrawTextEx(font, "Absorb", {25, 215}, fontSize, 0, RAYWHITE);
         GuiSlider((Rectangle){25, 245, 100, 25}, NULL, NULL, &absorb, absorbLow, absorbHigh);
-        DrawText(TextFormat("%1.4f", absorb), 25, 275, 25, RAYWHITE);
+        DrawTextEx(font, TextFormat("%1.4f", absorb), {25, 275}, fontSize, 0, RAYWHITE);
 
         DrawFPS(25, 400);
-        DrawText(TextFormat("%d", frame), 25, 450, 25, RAYWHITE);
+        DrawTextEx(font, "Frame:", {25, 450}, fontSize, 0, RAYWHITE);
+        DrawTextEx(font, TextFormat("%d", frame), {25, 475}, fontSize, 0, RAYWHITE);
 
         if (running)
         {
             frame += 1;
             convolver.convolve(alpha, absorb);
             UpdateTexture(displayTexture, currentImg.data);
-            DrawText("Running", 25, 355, 25, RAYWHITE);
+            DrawTextEx(font, "Running", {25, 355}, 25, 0, RAYWHITE);
         }
 
         DrawTexture(displayTexture, picStart.x, picStart.y, WHITE);
@@ -198,13 +203,12 @@ int main()
         if (infoPanel)
         {
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(RAYWHITE, 0.8f));
-            DrawText("Drag and drop PNG or JPG", 100, 100, 30, BLACK);
-            DrawText("A | SPC === start/stop", 100, 135, 30, BLACK);
-            DrawText("O === original image", 100, 170, 30, BLACK);
-            DrawText("F === advance 1 frame", 100, 205, 30, BLACK);
+            DrawTextEx(font, "Drag and drop PNG or JPG", {100, 100}, 30, 0, BLACK);
+            DrawTextEx(font, "A | SPC === start/stop", {100, 135}, 30, 0, BLACK);
+            DrawTextEx(font, "O === original image", {100, 170}, 30, 0, BLACK);
+            DrawTextEx(font, "F === advance 1 frame", {100, 205}, 30, 0, BLACK);
         }
-
-        DrawText("? = help", 25, 600, 18, GRAY);
+        DrawTextEx(font, "? = help", {25, 600}, fontSize, 0, GRAY);
 
         EndDrawing();
     }
