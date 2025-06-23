@@ -37,7 +37,7 @@ int main()
     Image originalImg;
     Image currentImg;
     size_t frame{0};
-    currentImg = LoadImage("resources/possums.png");
+    currentImg = LoadImage("resources/circle2.png");
     ImageFormat(&currentImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
     originalImg = ImageCopy(currentImg);
     ImageFormat(&originalImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
@@ -48,15 +48,14 @@ int main()
 
     Texture displayTexture = LoadTextureFromImage(currentImg);
 
-    float alpha{0.1f}; // input values tied to GUI controls
-    float fudge{0.0f}; //
+    float alpha{0.1f};  // input values tied to GUI controls
+    float absorb{0.0f}; //
 
     // SetTraceLogLevel(LOG_ALL);
-    bool running = false;
-    bool saving{false}, loading{false};
+    bool running{false}, saving{false}, loading{false}, infoPanel{false};
     char filename[256]{0};
     float speedLow{0.0015f}, speedHigh{0.175f};
-    float fudgeLow{0.0f}, fudgeHigh{1.0f};
+    float absorbLow{0.0f}, absorbHigh{1.0f};
 
     // hide when not arm64-NEON
     // set FTZ flag
@@ -109,6 +108,11 @@ int main()
             UnloadDroppedFiles(droppedFiles);
         }
 
+        if ((IsKeyReleased(KEY_SLASH) || IsKeyReleased(KEY_H)) && !saving)
+        {
+            infoPanel = !infoPanel;
+        }
+
         if (IsKeyReleased(KEY_S) && !saving)
         {
             saving = true;
@@ -119,7 +123,7 @@ int main()
         {
             running = false;
             frame += 1;
-            convolver.convolve(alpha, fudge);
+            convolver.convolve(alpha, absorb);
             UpdateTexture(displayTexture, currentImg.data);
         }
 
@@ -153,8 +157,8 @@ int main()
 
         // auto textCol = (reflect) ? DARKGRAY : RAYWHITE;
         DrawText("Absorb", 25, 215, 18, RAYWHITE);
-        GuiSlider((Rectangle){25, 245, 100, 25}, NULL, NULL, &fudge, fudgeLow, fudgeHigh);
-        DrawText(TextFormat("%1.4f", fudge), 25, 275, 25, RAYWHITE);
+        GuiSlider((Rectangle){25, 245, 100, 25}, NULL, NULL, &absorb, absorbLow, absorbHigh);
+        DrawText(TextFormat("%1.4f", absorb), 25, 275, 25, RAYWHITE);
 
         DrawFPS(25, 400);
         DrawText(TextFormat("%d", frame), 25, 450, 25, RAYWHITE);
@@ -162,7 +166,7 @@ int main()
         if (running)
         {
             frame += 1;
-            convolver.convolve(alpha, fudge);
+            convolver.convolve(alpha, absorb);
             UpdateTexture(displayTexture, currentImg.data);
             DrawText("Running", 25, 355, 25, RAYWHITE);
         }
@@ -190,6 +194,17 @@ int main()
             }
             // set
         }
+
+        if (infoPanel)
+        {
+            DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(RAYWHITE, 0.8f));
+            DrawText("Drag and drop PNG or JPG", 100, 100, 30, BLACK);
+            DrawText("A | SPC === start/stop", 100, 135, 30, BLACK);
+            DrawText("O === original image", 100, 170, 30, BLACK);
+            DrawText("F === advance 1 frame", 100, 205, 30, BLACK);
+        }
+
+        DrawText("? = help", 25, 600, 18, GRAY);
 
         EndDrawing();
     }

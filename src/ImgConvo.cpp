@@ -90,12 +90,12 @@ void ImgConvolver::loadImage(Image &img)
     curImage = 0;
 }
 
-void ImgConvolver::convolve(float newAlpha, float fudge)
+void ImgConvolver::convolve(float newAlpha, float absorb)
 {
     alpha = newAlpha;
     alphaSq = alpha * alpha;
     kQuot = (alpha - 1) / (alpha + 1);
-    // float fudge = .30f;
+    // float absorb = .30f;
     UChar3 *u0d = static_cast<UChar3 *>(u0out.data);
     // indices for the current, last, and penultimate images
     curImage = (curImage + 1) % 3;
@@ -147,16 +147,16 @@ void ImgConvolver::convolve(float newAlpha, float fudge)
             float u0zjz = c4(blus[l].get(), 1, col) + kQuot * (c4(blus[c].get(), 1, col) - c4(blus[l].get(), 0, col));
             float u0Njz = c4(blus[l].get(), h - 2, col) + kQuot * (c4(blus[c].get(), h - 2, col) - c4(blus[l].get(), h - 1, col));
             // clang-format on
-            reds[c].get()[zj] = Clamp(u0zjx * fudge, -.5f, .5f);
-            grns[c].get()[zj] = Clamp(u0zjy * fudge, -.5f, .5f);
-            blus[c].get()[zj] = Clamp(u0zjz * fudge, -.5f, .5f);
+            reds[c].get()[zj] = Clamp(u0zjx * absorb, -.5f, .5f);
+            grns[c].get()[zj] = Clamp(u0zjy * absorb, -.5f, .5f);
+            blus[c].get()[zj] = Clamp(u0zjz * absorb, -.5f, .5f);
             u0d[zj].x = static_cast<unsigned char>(Clamp((u0zjx + 0.5f) * 255, 0, 255));
             u0d[zj].y = static_cast<unsigned char>(Clamp((u0zjy + 0.5f) * 255, 0, 255));
             u0d[zj].z = static_cast<unsigned char>(Clamp((u0zjz + 0.5f) * 255, 0, 255));
 
-            reds[c].get()[Nj] = Clamp(u0Njx * fudge, -.5f, .5f);
-            grns[c].get()[Nj] = Clamp(u0Njy * fudge, -.5f, .5f);
-            blus[c].get()[Nj] = Clamp(u0Njz * fudge, -.5f, .5f);
+            reds[c].get()[Nj] = Clamp(u0Njx * absorb, -.5f, .5f);
+            grns[c].get()[Nj] = Clamp(u0Njy * absorb, -.5f, .5f);
+            blus[c].get()[Nj] = Clamp(u0Njz * absorb, -.5f, .5f);
 
             u0d[Nj].x = static_cast<unsigned char>(Clamp((u0Njx + 0.5f) * 255, 0, 255));
             u0d[Nj].y = static_cast<unsigned char>(Clamp((u0Njy + 0.5f) * 255, 0, 255));
@@ -184,13 +184,13 @@ void ImgConvolver::convolve(float newAlpha, float fudge)
             u0d[iN].y = static_cast<unsigned char>(Clamp((u0iNy + 0.5f) * 255, 0, 255));
             u0d[iN].z = static_cast<unsigned char>(Clamp((u0iNz + 0.5f) * 255, 0, 255));
 
-            reds[c].get()[i0] = Clamp(u0i0x * fudge, -.5f, .5f);
-            grns[c].get()[i0] = Clamp(u0i0y * fudge, -.5f, .5f);
-            blus[c].get()[i0] = Clamp(u0i0z * fudge, -.5f, .5f);
+            reds[c].get()[i0] = Clamp(u0i0x * absorb, -.5f, .5f);
+            grns[c].get()[i0] = Clamp(u0i0y * absorb, -.5f, .5f);
+            blus[c].get()[i0] = Clamp(u0i0z * absorb, -.5f, .5f);
 
-            reds[c].get()[iN] = Clamp(u0iNx * fudge, -.5f, .5f);
-            grns[c].get()[iN] = Clamp(u0iNy * fudge, -.5f, .5f);
-            blus[c].get()[iN] = Clamp(u0iNz * fudge, -.5f, .5f);
+            reds[c].get()[iN] = Clamp(u0iNx * absorb, -.5f, .5f);
+            grns[c].get()[iN] = Clamp(u0iNy * absorb, -.5f, .5f);
+            blus[c].get()[iN] = Clamp(u0iNz * absorb, -.5f, .5f);
         }
     }
     ImageFormat(&u0out, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
