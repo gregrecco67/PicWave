@@ -1,1 +1,25 @@
-<!doctypehtml><html lang=EN-us><head><meta charset=utf-8><meta content="text/html; charset=utf-8"http-equiv=Content-Type><title>PicWave</title><meta content=PicWave name=title><meta content="What if a pic were a wave?"name=description><meta content="width=device-width"name=viewport><link href=https://www.raylib.com/favicon.ico rel="shortcut icon"><style>body{margin:0;overflow:hidden;background-color:#000}canvas.emscripten{border:0 none;background-color:#000}</style></head><body><canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas><p id=output><script>var Module={print:function(){var e=document.getElementById("output");return e&&(e.value=""),function(n){arguments.length>1&&(n=Array.prototype.slice.call(arguments).join(" ")),console.log(n),e&&(e.value+=n+"\n",e.scrollTop=e.scrollHeight)}}(),canvas:document.getElementById("canvas")}</script><script async src=index.js></script></body></html>
+
+<style>
+    a { color:cornflowerblue; }
+    a:visited { color:cornflowerblue; }
+
+</style>
+<body style="background-color:black; color:aliceblue; font-size:20pt;">
+    
+    <center><h3>When you&rsquo;re ready, try out the app by clicking <a href="app.html" 
+    onclick="window.open(
+        this.href,'_blank',
+        'menubar=no,toolbar=no,width=1400,height=1000');
+        return false;">here</a></h3></center>
+<div style="margin-left: 35%;">
+    <p>Drag and drop your own pictures (PNG or JPEG)</p>
+    <p>Press <b>?</b> to see these instructions,</p>
+    <p><b>&lsquo;A&rsquo;</b> or space bar to start or stop,</p>
+    <p><b>&lsquo;O&rsquo;</b> to revert to the original image, and</p>
+    <p><b>&lsquo;F&rsquo;</b> to advance 1 frame and pause.</p>
+    <p></p>
+    <p>Sliders control speed and the stiffness of the boundary.</p>
+    <p>Read more about tne 2D wave equation <a href="https://beltoforion.de/en/recreational_mathematics/2d-wave-equation.php">here</a></p>
+    <p>View the source code <a href="https://github.com/gregrecco67/PicWave">here</a>. Very much a work in progress!</p>
+
+    </body>

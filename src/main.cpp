@@ -218,7 +218,7 @@ int main()
 
 // wasm compilation:
 
-// em++ -std=c++20 -o index.html src/main.cpp src/ImgConvo.cpp -O3 -Wall \
+// em++ -std=c++20 -o app.html src/main.cpp src/ImgConvo.cpp -O3 -Wall \
 // -I ~/dev/emsdk/upstream/emscripten/cache/sysroot/include -I./src  -I/usr/local/include \
 // -L ~/dev/emsdk/upstream/emscripten/cache/sysroot/lib/libraylib.a -s USE_GLFW=3 \
 // -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1 --preload-file resources \
