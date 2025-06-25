@@ -10,16 +10,19 @@
 
 // TODO:
 //
-// -- compile for WebAssembly
 // -- implement file save (and load, for that matter)
 // -- video save? ffmpeg available on wasm?
 // -- paintable canvas? or pingable? pluckable?
 
 // -- circular field?
-// -- next order kernel
+// -- next order kernel? (probably not worth the squeeze, but maybe try anyway!)
 // -- SIMD
 
 // -- new mode treating orig image colors as 0, allowing painting/plucking?
+// -- drawing idea: drawable barriers: spin up an array of int8_t
+// -- the array can be sized so that we can skip the bounds check in c4 and
+// -- just put a bunch of zeroes out there and then multiply the image buffer value
+// -- by 0 or 1
 
 int main()
 {
